@@ -1,0 +1,17 @@
+{
+  "name": "hf-voice-assistant",
+  "version": "1.0.0",
+  "description": "AI Voice Assistant for Hugging Face Spaces",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "dev": "live-server --port=3000"
+  },
+  "keywords": ["huggingface", "spaces", "voice-assistant", "openai", "llm"],
+  "author": "Qoder AI Assistant",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.0",
+    "live-server": "^1.2.2"
+  }
+}

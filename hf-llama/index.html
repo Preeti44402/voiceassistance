@@ -1,0 +1,556 @@
+---
+title: Kodbank Voice Assistant
+sdk: static
+emoji: 🎙️
+colorFrom: indigo
+colorTo: slate
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kodbank Voice Assistant - Hugging Face Spaces</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@huggingface/inference@2.6.4"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .neural-orb {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#667eea 0deg, #764ba2 360deg);
+            position: relative;
+            margin: 20px auto 30px;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            transition: all 0.5s ease;
+        }
+        
+        .neural-orb.listening {
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 40px rgba(102, 126, 234, 0.8);
+            transform: scale(1.1);
+        }
+        
+        .neural-orb.thinking {
+            animation: rotate 3s linear infinite;
+            box-shadow: 0 0 40px rgba(255, 193, 7, 0.8);
+        }
+        
+        .neural-orb.speaking {
+            animation: glow 1s infinite alternate;
+            box-shadow: 0 0 40px rgba(40, 167, 69, 0.8);
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(360deg) scale(1.05); }
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
+            100% { box-shadow: 0 0 50px rgba(40, 167, 69, 1); }
+        }
+        
+        .orb-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .btn-hold {
+            position: relative;
+        }
+        
+        .btn-hold:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .thinking-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ffc107;
+            margin-left: 5px;
+            animation: blink 1.4s infinite both;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-dark-900 via-purple-900 to-violet-900 min-h-screen flex flex-col text-white">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">Kodbank Voice Assistant</h1>
+            <p class="text-gray-300">Powered by Hugging Face Llama 3 • Free & Serverless</p>
+        </header>
+        
+        <main class="glassmorphism rounded-2xl shadow-2xl p-6 mb-8 border border-gray-700">
+            <div class="flex flex-col items-center">
+                <!-- Neural Orb Status Indicator -->
+                <div class="neural-orb idle" id="neuralOrb">
+                    <div class="orb-inner flex flex-col items-center justify-center">
+                        <span class="text-sm font-semibold" id="orbStatus">IDLE</span>
+                        <span class="text-xs mt-1 text-gray-500">AI</span>
+                    </div>
+                </div>
+                
+                <div id="status" class="mb-6 w-full text-center">
+                    <p class="text-gray-300" id="statusText">Ready to listen. Hold the button to speak.</p>
+                    <div id="modelNotice" class="mt-2 p-3 bg-blue-900 bg-opacity-30 rounded-lg text-blue-200">
+                        🤖 Using Hugging Face Llama 3 (Free)
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 mb-6">
+                    <button id="listenButton" class="btn-hold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        <span id="buttonText">🎤 Hold to Listen</span>
+                    </button>
+                    
+                    <button id="stopButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-full text-lg transition-all duration-300 opacity-70 hover:opacity-100 disabled:opacity-40" disabled>
+                        ⏹️ Stop
+                    </button>
+                </div>
+                
+                <div class="mt-4 w-full max-w-2xl">
+                    <div class="bg-gray-800 bg-opacity-50 rounded-lg p-4 border border-gray-600">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-gray-200">Conversation History</h3>
+                            <span id="thinkingIndicator" class="hidden">
+                                <span class="thinking-indicator"></span>
+                                <span class="text-yellow-400 text-sm">Thinking...</span>
+                            </span>
+                        </div>
+                        <div id="conversationLog" class="min-h-[200px] max-h-80 overflow-y-auto bg-gray-900 bg-opacity-70 p-3 rounded border border-gray-700">
+                            <p class="text-gray-500 italic text-center py-8">No conversation yet... Start by holding the "Hold to Listen" button.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-900 bg-opacity-30 p-4 rounded-lg border border-blue-700">
+                            <h4 class="font-medium text-blue-300 mb-2 flex items-center">
+                                <span class="mr-2">💡</span>
+                                Try asking:
+                            </h4>
+                            <ul class="text-sm text-blue-200 space-y-1">
+                                <li>• "Hi" (triggers hello response)</li>
+                                <li>• "What can you help me with?"</li>
+                                <li>• "Tell me a fun fact"</li>
+                                <li>• "Explain quantum computing"</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-purple-900 bg-opacity-30 p-4 rounded-lg border border-purple-700">
+                            <h4 class="font-medium text-purple-300 mb-2 flex items-center">
+                                <span class="mr-2">⚙️</span>
+                                Features:
+                            </h4>
+                            <ul class="text-sm text-purple-200 space-y-1">
+                                <li>• Llama 3 Powered Responses</li>
+                                <li>• Real-time Speech Processing</li>
+                                <li>• Visual Status Indicators</li>
+                                <li>• No API Key Required</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center text-gray-400 text-sm">
+            <p>Kodbank Voice Assistant • Powered by Hugging Face Llama 3 • Completely Free</p>
+        </footer>
+    </div>
+
+    <script>
+        
+        const listenButton = document.getElementById('listenButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusText = document.getElementById('statusText');
+        const buttonText = document.getElementById('buttonText');
+        const conversationLog = document.getElementById('conversationLog');
+        const neuralOrb = document.getElementById('neuralOrb');
+        const orbStatus = document.getElementById('orbStatus');
+        const thinkingIndicator = document.getElementById('thinkingIndicator');
+        
+        let isListening = false;
+        let isProcessing = false;
+        let isSpeaking = false;
+        let recognition = null;
+        
+        // Initialize Hugging Face Inference Client (token managed by Hugging Face Spaces)
+        // In production on Hugging Face Spaces, the token would be securely managed by the platform
+        const hf = new HfInference();
+        
+        // Check if SpeechRecognition is available
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                console.log('Recognized:', transcript);
+                stopListening();
+                await processVoiceInput(transcript);
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+                statusText.textContent = `Speech recognition error: ${event.error}. Please ensure microphone permissions are granted.`;
+                updateOrbStatus('idle');
+            };
+            
+            recognition.onend = () => {
+                if (isListening) {
+                    stopListening();
+                }
+            };
+        } else {
+            console.error('SpeechRecognition not supported in this browser.');
+            statusText.textContent = 'Speech recognition not supported in this browser. Please try Chrome, Edge, or Safari.';
+        }
+        
+        // Add browser compatibility check
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            statusText.textContent = 'Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.';
+        } else if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            statusText.textContent = 'Warning: Speech recognition requires HTTPS (except for localhost). Voice commands may not work.';
+        }
+        
+        // Add a log entry to the conversation log
+        function addToLog(input, response) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-4 last:mb-0 p-3 bg-gray-800 rounded-lg border-l-4 border-blue-500';
+            
+            logEntry.innerHTML = `
+                <div class="text-sm">
+                    <div class="flex items-start mb-1">
+                        <span class="font-medium text-blue-400 mr-2">You:</span>
+                        <span class="text-gray-200">${input}</span>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="font-medium text-green-400 mr-2">AI:</span>
+                        <span class="text-gray-200">${response}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1 text-right">${timestamp}</div>
+                </div>
+            `;
+            
+            // Clear the "No conversation yet..." message if present
+            if (conversationLog.children.length === 1 && conversationLog.firstChild.textContent.includes("No conversation yet")) {
+                conversationLog.innerHTML = '';
+            }
+            
+            conversationLog.appendChild(logEntry);
+            conversationLog.scrollTop = conversationLog.scrollHeight;
+        }
+        
+        // Update orb status and UI
+        function updateOrbStatus(status) {
+            // Remove all status classes
+            neuralOrb.classList.remove('idle', 'listening', 'thinking', 'speaking');
+            
+            switch(status) {
+                case 'idle':
+                    neuralOrb.classList.add('idle');
+                    orbStatus.textContent = 'IDLE';
+                    break;
+                case 'listening':
+                    neuralOrb.classList.add('listening');
+                    orbStatus.textContent = 'LISTENING';
+                    break;
+                case 'thinking':
+                    neuralOrb.classList.add('thinking');
+                    orbStatus.textContent = 'THINKING';
+                    thinkingIndicator.classList.remove('hidden');
+                    break;
+                case 'speaking':
+                    neuralOrb.classList.add('speaking');
+                    orbStatus.textContent = 'SPEAKING';
+                    thinkingIndicator.classList.add('hidden');
+                    break;
+            }
+        }
+        
+        // Cancel speech synthesis
+        function cancelSpeech() {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+            stopButton.disabled = true;
+        }
+        
+        // Speak text using Web Speech API
+        function speakText(text) {
+            if (!text || text.trim() === '') return;
+            
+            cancelSpeech(); // Cancel any ongoing speech
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Configure voice properties
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(voice => voice.lang.includes('en')); 
+            if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 0.8;
+            
+            utterance.onstart = () => {
+                isSpeaking = true;
+                stopButton.disabled = false;
+                updateOrbStatus('speaking');
+                statusText.textContent = 'AI is speaking...';
+            };
+            
+            utterance.onend = () => {
+                isSpeaking = false;
+                stopButton.disabled = true;
+                updateOrbStatus('idle');
+                statusText.textContent = 'Ready to listen again.';
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                isSpeaking = false;
+                stopButton.disabled = true;
+                updateOrbStatus('idle');
+                statusText.textContent = 'Speech error. Ready to listen.';
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+        
+        // Query the LLM via Hugging Face Inference API
+        async function queryLLM(prompt) {
+            try {
+                // Use Hugging Face's hosted inference for Llama 3 with better prompting
+                const response = await hf.chatCompletion({
+                    model: "meta-llama/Meta-Llama-3-8B-Instruct",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a helpful, conversational AI assistant. Provide natural, human-like responses that are informative and engaging. Keep responses concise but thoughtful."
+                        },
+                        {
+                            role: "user", 
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.7,
+                    top_p: 0.9,
+                    top_k: 50,
+                });
+                
+                return response.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
+            } catch (error) {
+                console.error('Error querying LLM:', error);
+                // Fallback to simple responses if HF API fails
+                if (error.message.includes('rate limit') || error.message.includes('quota')) {
+                    return "I'm currently at capacity. Please try again in a moment. For now, I can only respond to simple triggers like 'hi'.";
+                }
+                return `I'm having trouble connecting to my AI brain right now. Can you try asking something else? For now, I can respond to simple triggers like 'hi'.`;
+            }
+        }
+        
+        // Process the recognized text
+        async function processInput(text) {
+            // Check for simple triggers first
+            if (text.includes("hi") || text.includes("hello")) {
+                return "Hello! How can I help you today?";
+            } else if (text.includes("how are you")) {
+                return "I'm doing well, thank you for asking! I'm here and ready to help you.";
+            } else if (text.includes("what is your name")) {
+                return "I'm the Kodbank Voice Assistant, powered by Hugging Face's Llama 3 model.";
+            } else if (text.includes("thank you") || text.includes("thanks")) {
+                return "You're welcome! Is there anything else I can help you with?";
+            } else {
+                // For more complex queries, use the LLM
+                return await queryLLM(text);
+            }
+        }
+        
+        // Handle the listen button mousedown (start listening)
+        listenButton.addEventListener('mousedown', () => {
+            if (isListening || isProcessing) return;
+            startListening();
+        });
+        
+        // Handle the listen button touchstart (for mobile)
+        listenButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isListening || isProcessing) return;
+            startListening();
+        });
+        
+        // Handle the listen button mouseup (stop listening)
+        listenButton.addEventListener('mouseup', stopListening);
+        listenButton.addEventListener('mouseleave', stopListening);
+        
+        // Handle the listen button touchend (for mobile)
+        listenButton.addEventListener('touchend', stopListening);
+        listenButton.addEventListener('touchcancel', stopListening);
+        
+        function startListening() {
+            if (isListening || isProcessing) return;
+            
+            if (!recognition) {
+                statusText.textContent = 'Speech recognition not supported in this browser.';
+                return;
+            }
+            
+            isListening = true;
+            
+            // Update UI for listening state
+            updateOrbStatus('listening');
+            buttonText.textContent = '🔴 Listening...';
+            statusText.textContent = 'Listening for your voice... Please speak now.';
+            
+            // Start speech recognition
+            try {
+                recognition.start();
+                
+                recognition.onresult = async (event) => {
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    stopListening();
+                    await processVoiceInput(transcript);
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    stopListening();
+                    statusText.textContent = `Speech recognition error: ${event.error}. Please try again.`;
+                    updateOrbStatus('idle');
+                };
+                
+                recognition.onend = () => {
+                    if (isListening) {
+                        stopListening();
+                    }
+                };
+            } catch (error) {
+                console.error('Error starting speech recognition:', error);
+                stopListening();
+                statusText.textContent = 'Error accessing microphone. Please ensure permissions are granted.';
+                updateOrbStatus('idle');
+            }
+        }
+        
+        function stopListening() {
+            if (!isListening) return;
+            
+            isListening = false;
+            
+            try {
+                recognition.stop();
+            } catch (e) {
+                console.warn('Recognition stop error:', e);
+            }
+            
+            // Update UI back to ready state
+            if (!isProcessing && !isSpeaking) {
+                updateOrbStatus('idle');
+                buttonText.textContent = '🎤 Hold to Listen';
+                statusText.textContent = 'Processing your request...';
+            }
+        }
+        
+        async function processVoiceInput(transcript) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            
+            try {
+                // Update orb to thinking state while we process
+                updateOrbStatus('thinking');
+                statusText.textContent = `Processing: "${transcript}"`;
+                
+                // Process the input to get a response
+                const response = await processInput(transcript);
+                
+                // Add to log
+                addToLog(transcript, response);
+                
+                // Speak the response
+                speakText(response);
+            } catch (error) {
+                console.error('Error processing voice input:', error);
+                statusText.textContent = 'Error processing your request. Please try again.';
+                updateOrbStatus('idle');
+            } finally {
+                isProcessing = false;
+                
+                if (!isSpeaking && !isListening) {
+                    updateOrbStatus('idle');
+                    buttonText.textContent = '🎤 Hold to Listen';
+                    statusText.textContent = 'Ready to listen again.';
+                }
+            }
+        }
+        
+        // Handle stop button click
+        stopButton.addEventListener('click', () => {
+            cancelSpeech();
+            statusText.textContent = 'Speech stopped. Ready to listen again.';
+        });
+        
+        // Request speech synthesis voices after a delay to ensure they're loaded
+        window.speechSynthesis.onvoiceschanged = function() {
+            console.log('Speech synthesis voices loaded:', window.speechSynthesis.getVoices());
+        };
+        
+        // Initialize UI
+        updateOrbStatus('idle');
+        
+        console.log('Hugging Face Voice Assistant initialized');
+        console.log('Using model: meta-llama/Meta-Llama-3-8B-Instruct');
+    </script>
+</body>
+</html>

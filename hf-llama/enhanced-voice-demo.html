@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kodbank Voice Assistant - Enhanced Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .input-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 60%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .voice-btn {
+            background: linear-gradient(to right, #fa709a 0%, #fee140 100%);
+        }
+        .response-box {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 150px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .quick-buttons {
+            margin: 20px 0;
+            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .quick-btn {
+            background: #6a11cb;
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 12px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #ccc;
+        }
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        .topic-list {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .topic-list h3 {
+            margin-top: 0;
+        }
+        .topic-list ul {
+            columns: 2;
+            column-gap: 30px;
+            padding-left: 20px;
+        }
+        @media (max-width: 768px) {
+            .topic-list ul {
+                columns: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kodbank Voice Assistant</h1>
+        <p style="text-align: center; color: #ccc;">Enhanced Voice + Text Demo</p>
+        
+        <div class="status" id="status">Ready for input</div>
+        
+        <div class="input-section">
+            <input type="text" id="userInput" placeholder="Ask anything..." />
+            <button onclick="processInput()">Send Text</button>
+        </div>
+        
+        <div class="input-section">
+            <button class="voice-btn pulse" onclick="startVoiceInput()" id="voiceButton">
+                🎤 Click to Enable Voice
+            </button>
+            <div id="voiceStatus" style="margin-top: 10px; font-size: 14px; color: #ccc;"></div>
+        </div>
+        
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="quickTest('hi')">Hi</button>
+            <button class="quick-btn" onclick="quickTest('how are you')">How are you?</button>
+            <button class="quick-btn" onclick="quickTest('what can you do')">What can you do?</button>
+            <button class="quick-btn" onclick="quickTest('tell me about AI')">About AI</button>
+            <button class="quick-btn" onclick="quickTest('what is machine learning')">Machine Learning</button>
+            <button class="quick-btn" onclick="quickTest('explain blockchain')">Blockchain</button>
+            <button class="quick-btn" onclick="quickTest('tell me a joke')">Joke</button>
+            <button class="quick-btn" onclick="quickTest('what is the weather like')">Weather</button>
+            <button class="quick-btn" onclick="quickTest('who invented the internet')">Internet</button>
+            <button class="quick-btn" onclick="quickTest('what is quantum computing')">Quantum Computing</button>
+            <button class="quick-btn" onclick="quickTest('how do neural networks work')">Neural Networks</button>
+            <button class="quick-btn" onclick="quickTest('what is the meaning of life')">Meaning of Life</button>
+        </div>
+        
+        <div class="response-box" id="responseArea">
+            Welcome! This enhanced demo supports both text and voice input with expanded conversation topics. 
+            <br><br>For voice: Click the microphone button, allow microphone access, then speak.
+            <br>For text: Type your message and click "Send Text".
+            <br><br>Try asking about AI, technology, science, jokes, or anything else!
+        </div>
+        
+        <div class="topic-list">
+            <h3>Topics You Can Ask About:</h3>
+            <ul>
+                <li>Greetings ("hi", "hello", "hey")</li>
+                <li>Well-being ("how are you", "what's up")</li>
+                <li>Capabilities ("what can you do", "help")</li>
+                <li>Technology ("AI", "machine learning", "blockchain")</li>
+                <li>Science ("quantum computing", "neural networks")</li>
+                <li>General knowledge ("inventions", "history")</li>
+                <li>Philosophy ("meaning of life", "ethics")</li>
+                <li>Fun topics ("jokes", "riddles", "fun facts")</li>
+                <li>Entertainment ("movies", "music", "books")</li>
+                <li>Health ("nutrition", "exercise", "wellness")</li>
+                <li>Business ("entrepreneurship", "innovation")</li>
+                <li>Environment ("climate", "sustainability")</li>
+            </ul>
+        </div>
+        
+        <div class="instructions">
+            <h3>Voice Input Instructions:</h3>
+            <ol>
+                <li>Click the "Click to Enable Voice" button</li>
+                <li>Allow microphone access when prompted by your browser</li>
+                <li>Speak clearly and naturally</li>
+                <li>Try saying "hi", "how are you", or "what is artificial intelligence"</li>
+                <li>Ask about any of the topics listed above!</li>
+            </ol>
+            <p><strong>Note:</strong> Voice recognition works best in Chrome, Edge, or Safari browsers.</p>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center; color: #ccc;">
+            <p>When deployed to Hugging Face Spaces, this will have full AI capabilities with Llama 3.</p>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced response mapping with more topics
+        const responses = {
+            // Greetings
+            'hi': 'Hello! Nice to meet you! I heard you say "hi" through voice or text.',
+            'hello': 'Hello! How can I help you today? I heard you say "hello".',
+            'hey': 'Hey there! Good to see you. What would you like to talk about?',
+            'good morning': 'Good morning! It\'s a beautiful day. How can I assist you?',
+            'good afternoon': 'Good afternoon! Hope you\'re having a great day. What can I do for you?',
+            'good evening': 'Good evening! How has your day been? What would you like to discuss?',
+            
+            // Well-being
+            'how are you': 'I\'m doing well, thank you for asking! I\'m here and ready to chat. How are you doing today?',
+            'how do you do': 'I\'m doing wonderfully! Thanks for checking in. How can I assist you?',
+            'what\'s up': 'Not much, just here to chat with you! What\'s on your mind?',
+            'how are you feeling': 'I\'m feeling quite well, thank you! I\'m always excited to learn and chat with users like you.',
+            
+            // Capabilities
+            'what can you do': 'I can have conversations, answer questions, explain concepts, tell jokes, and help you think through ideas. What would you like to discuss?',
+            'what can you help me with': 'I\'m here to engage in meaningful conversations, provide information, and assist with various topics. Ask me anything you\'re curious about!',
+            'help': 'I\'m here to help! You can ask me about technology, science, general knowledge, or just chat. What would you like to know?',
+            'can you assist me': 'Absolutely! I\'d be happy to help. What topic would you like to explore together?',
+            
+            // Technology
+            'what is ai': 'AI stands for Artificial Intelligence - computer systems designed to perform tasks that typically require human intelligence. This includes learning, reasoning, problem-solving, perception, and language understanding.',
+            'what is artificial intelligence': 'Artificial Intelligence refers to computer systems designed to perform tasks that typically require human intelligence. Modern AI excels at pattern recognition, natural language processing, and decision-making.',
+            'what is machine learning': 'Machine Learning is a subset of AI that enables computers to learn and improve from experience without being explicitly programmed. It uses algorithms to analyze data and make predictions.',
+            'what is deep learning': 'Deep Learning is a subset of machine learning inspired by the structure of the human brain. It uses neural networks with multiple layers to process complex patterns in data.',
+            'what is blockchain': 'Blockchain is a decentralized digital ledger technology that records transactions across multiple computers. It\'s secure, transparent, and eliminates the need for intermediaries.',
+            'what is quantum computing': 'Quantum computing uses quantum bits (qubits) that can exist in multiple states simultaneously. This allows for exponentially faster computation for certain problems compared to classical computers.',
+            'how do neural networks work': 'Neural networks are computing systems inspired by the human brain. They consist of interconnected nodes (neurons) organized in layers that process and transmit information to recognize patterns.',
+            
+            // Science
+            'what is the theory of relativity': 'Einstein\'s Theory of Relativity consists of Special and General Relativity. Special Relativity deals with objects moving at constant speeds, while General Relativity explains gravity as curvature of spacetime.',
+            'what is dna': 'DNA (Deoxyribonucleic Acid) is the molecule that carries genetic instructions for life. It has a double helix structure containing genes that determine traits and functions.',
+            'what is the big bang': 'The Big Bang Theory describes the origin of the universe approximately 13.8 billion years ago. It began as an extremely hot, dense point that rapidly expanded and cooled.',
+            
+            // Fun topics
+            'tell me a joke': 'Why don\'t scientists trust atoms? Because they make up everything! 😄',
+            'tell me another joke': 'Why did the scarecrow win an award? He was outstanding in his field! 🤣',
+            'make me laugh': 'What do you call a fake noodle? An impasta! 😂',
+            'what is a fun fact': 'Here\'s a fun fact: Octopuses have three hearts and blue blood! Two hearts pump blood to the gills, while the third pumps to the rest of the body.',
+            'tell me something interesting': 'Did you know that honey never spoils? Archaeologists have found edible honey in ancient Egyptian tombs that\'s over 3,000 years old!',
+            
+            // General knowledge
+            'who invented the internet': 'The internet evolved from ARPANET, developed by the U.S. Department of Defense. Tim Berners-Lee created the World Wide Web in 1989, making the internet accessible to the public.',
+            'what is the capital of france': 'The capital of France is Paris, known as the "City of Light" and famous for its art, fashion, and culture.',
+            'who wrote hamlet': 'Hamlet was written by William Shakespeare, one of the greatest playwrights in English literature. It was written between 1599 and 1601.',
+            'what is the largest planet': 'Jupiter is the largest planet in our solar system. It\'s a gas giant with a mass more than twice that of all other planets combined.',
+            
+            // Philosophy
+            'what is the meaning of life': 'The meaning of life is a profound philosophical question. Many perspectives exist: to seek happiness, fulfill purpose, grow spiritually, or create meaning through relationships and experiences.',
+            'what is consciousness': 'Consciousness is the state of being aware of and able to think about one\'s existence, thoughts, and surroundings. It remains one of the great mysteries of science.',
+            'what is morality': 'Morality refers to principles concerning the distinction between right and wrong behavior. It involves systems of values that guide ethical decisions and conduct.',
+            
+            // Health
+            'what is good nutrition': 'Good nutrition involves eating a balanced diet with fruits, vegetables, lean proteins, whole grains, and healthy fats. It\'s essential for optimal health and disease prevention.',
+            'how to stay healthy': 'Staying healthy involves regular exercise, balanced nutrition, adequate sleep, stress management, and regular medical checkups. Mental health is equally important.',
+            
+            // Business
+            'what is innovation': 'Innovation is the process of translating an idea or invention into a good or service that creates value. It involves creativity, implementation, and market delivery.',
+            'what is entrepreneurship': 'Entrepreneurship is the process of designing, launching, and running a new business. It involves risk-taking, innovation, and opportunity recognition.',
+            
+            // Environment
+            'what is climate change': 'Climate change refers to long-term shifts in global temperatures and weather patterns. While climate variations occur naturally, current changes are largely driven by human activities.',
+            'how to be sustainable': 'Living sustainably involves reducing environmental impact through conscious choices: conserving energy, reducing waste, supporting renewable resources, and mindful consumption.',
+            
+            // Entertainment
+            'what are good books': 'Some excellent books include "To Kill a Mockingbird" by Harper Lee, "1984" by George Orwell, "Pride and Prejudice" by Jane Austen, and "The Great Gatsby" by F. Scott Fitzgerald.',
+            'what are popular movies': 'Popular movies span genres: "The Shawshank Redemption", "The Godfather", "Pulp Fiction", "The Dark Knight", and many others that have left lasting cultural impacts.',
+            
+            // Farewells
+            'goodbye': 'Goodbye! It was lovely chatting with you. Feel free to come back anytime!',
+            'bye': 'Farewell! Thank you for the conversation. Have a wonderful day!',
+            'see you later': 'See you later! I hope our conversation was helpful. Until next time!',
+            'thanks': 'You\'re welcome! I\'m happy I could help. Is there anything else you\'d like to talk about?',
+            'thank you': 'My pleasure! Thanks for stopping by to chat. Until next time!'
+        };
+
+        // Default responses for unmatched inputs
+        const defaultResponses = [
+            'That\'s an interesting point! Tell me more about that.',
+            'I find that fascinating. What else can you share about this topic?',
+            'Thanks for sharing that with me. I\'d love to hear more!',
+            'I appreciate you telling me about this. How does that make you feel?',
+            'That\'s a thoughtful observation. I can definitely see it from that perspective.',
+            'I\'m glad you brought that up. It gives me something interesting to consider.',
+            'That\'s a great perspective. I enjoy learning through our conversations.',
+            'I hadn\'t thought about it that way before. Thanks for the insight!',
+            'That\'s intriguing! I\'d be happy to explore that idea further.',
+            'I enjoy our discussions. What else would you like to discuss?'
+        ];
+
+        let recognition = null;
+        let isListening = false;
+
+        // Initialize speech recognition if available
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    document.getElementById('voiceStatus').textContent = 'Heard: "' + transcript + '"';
+                    processVoiceResult(transcript);
+                };
+
+                recognition.onerror = function(event) {
+                    document.getElementById('voiceStatus').textContent = 'Error: ' + event.error;
+                    isListening = false;
+                    updateVoiceButton();
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    updateVoiceButton();
+                };
+
+                recognition.onstart = function() {
+                    document.getElementById('voiceStatus').textContent = 'Listening... Speak now';
+                    isListening = true;
+                    updateVoiceButton();
+                };
+
+                document.getElementById('voiceStatus').textContent = 'Voice recognition ready. Click button to start.';
+                return true;
+            } else {
+                document.getElementById('voiceStatus').textContent = 'Voice recognition not supported in this browser. Please use Chrome, Edge, or Safari.';
+                document.getElementById('voiceButton').disabled = true;
+                return false;
+            }
+        }
+
+        function updateVoiceButton() {
+            const button = document.getElementById('voiceButton');
+            if (isListening) {
+                button.textContent = '🔴 Listening...';
+                button.classList.add('pulse');
+            } else {
+                button.textContent = '🎤 Click to Enable Voice';
+                button.classList.remove('pulse');
+            }
+        }
+
+        function startVoiceInput() {
+            if (!recognition) {
+                if (!initSpeechRecognition()) {
+                    return;
+                }
+            }
+
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                updateVoiceButton();
+            } else {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    document.getElementById('voiceStatus').textContent = 'Error: ' + error.message;
+                    if (error.message.includes('permission')) {
+                        document.getElementById('voiceStatus').textContent = 'Please allow microphone access in your browser settings.';
+                    }
+                }
+            }
+        }
+
+        function processVoiceResult(transcript) {
+            const responseArea = document.getElementById('responseArea');
+            const status = document.getElementById('status');
+            
+            status.textContent = 'Processing voice input...';
+            
+            // Find the best response
+            let response = getResponseForInput(transcript);
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                responseArea.innerHTML = '<strong>You said (via voice):</strong> ' + transcript + '<br><br><strong>AI says:</strong> ' + response;
+                status.textContent = 'Voice response received';
+                
+                // Try to speak the response if possible
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(response);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, 500);
+        }
+
+        function getResponseForInput(input) {
+            // Check for exact matches first
+            if (responses[input]) {
+                return responses[input];
+            }
+            
+            // Check for partial matches
+            for (const [key, value] of Object.entries(responses)) {
+                if (input.includes(key) || key.includes(input)) {
+                    return value;
+                }
+            }
+            
+            // Check for common phrases
+            const lowerInput = input.toLowerCase();
+            if (lowerInput.includes('hi ') || lowerInput.startsWith('hi ') || lowerInput.endsWith(' hi') || lowerInput.includes('hello') || lowerInput.includes('hey')) {
+                return responses['hi'];
+            }
+            if (lowerInput.includes('how are you') || lowerInput.includes('how do you do') || lowerInput.includes('what\'s up')) {
+                return responses['how are you'];
+            }
+            if (lowerInput.includes('what can you') || lowerInput.includes('help') || lowerInput.includes('assist')) {
+                return responses['what can you do'];
+            }
+            if (lowerInput.includes('ai') || lowerInput.includes('artificial intelligence')) {
+                return responses['what is artificial intelligence'];
+            }
+            if (lowerInput.includes('machine learning') || lowerInput.includes('ml')) {
+                return responses['what is machine learning'];
+            }
+            if (lowerInput.includes('blockchain')) {
+                return responses['what is blockchain'];
+            }
+            if (lowerInput.includes('quantum') && lowerInput.includes('comput')) {
+                return responses['what is quantum computing'];
+            }
+            if (lowerInput.includes('joke') || lowerInput.includes('funny') || lowerInput.includes('laugh')) {
+                return responses['tell me a joke'];
+            }
+            if (lowerInput.includes('meaning of life') || lowerInput.includes('purpose')) {
+                return responses['what is the meaning of life'];
+            }
+            
+            // Return a default response if no match found
+            return defaultResponses[Math.floor(Math.random() * defaultResponses.length)] + ' Try asking about AI, technology, science, or just say "hi" to start!';
+        }
+
+        function processInput() {
+            const input = document.getElementById('userInput').value.trim().toLowerCase();
+            const responseArea = document.getElementById('responseArea');
+            const status = document.getElementById('status');
+            
+            if (!input) {
+                status.textContent = 'Please enter some text';
+                return;
+            }
+            
+            status.textContent = 'Processing text input...';
+            
+            // Get response for the input
+            const response = getResponseForInput(input);
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                responseArea.innerHTML = '<strong>You said (via text):</strong> ' + document.getElementById('userInput').value + '<br><br><strong>AI says:</strong> ' + response;
+                document.getElementById('userInput').value = '';
+                status.textContent = 'Text response received';
+                
+                // Try to speak the response if possible
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(response);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, 500);
+        }
+        
+        function quickTest(text) {
+            document.getElementById('userInput').value = text;
+            processInput();
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('userInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                processInput();
+            }
+        });
+
+        // Initialize when page loads
+        window.onload = function() {
+            initSpeechRecognition();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "kodbank-voice-assistant",
+  "version": "1.0.0",
+  "description": "Hugging Face Spaces Voice Assistant with Llama 3",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "dev": "live-server --port=3000"
+  },
+  "keywords": ["huggingface", "spaces", "voice-assistant", "llama3", "llm", "kodbank"],
+  "author": "Qoder AI Assistant",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.0",
+    "live-server": "^1.2.2"
+  }
+}

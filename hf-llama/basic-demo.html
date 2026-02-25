@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kodbank Voice Assistant - Basic Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .input-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .response-box {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 100px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .quick-buttons {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .quick-btn {
+            background: #6a11cb;
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kodbank Voice Assistant</h1>
+        <p style="text-align: center; color: #ccc;">Basic Demo - Working Version</p>
+        
+        <div class="status" id="status">Ready for input</div>
+        
+        <div class="input-section">
+            <input type="text" id="userInput" placeholder="Type 'hi', 'how are you', or any question..." />
+            <button onclick="processInput()">Send</button>
+        </div>
+        
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="quickTest('hi')">Say Hi</button>
+            <button class="quick-btn" onclick="quickTest('how are you')">How are you?</button>
+            <button class="quick-btn" onclick="quickTest('what can you do')">What can you do?</button>
+            <button class="quick-btn" onclick="quickTest('tell me about AI')">About AI</button>
+        </div>
+        
+        <div class="response-box" id="responseArea">
+            Welcome! This is a basic working demo. Type 'hi' and click Send to see a response.
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center; color: #ccc;">
+            <p>This version works in all browsers without special permissions.</p>
+            <p>When deployed to Hugging Face Spaces, it will have full AI capabilities.</p>
+        </div>
+    </div>
+
+    <script>
+        // Simple response mapping
+        const responses = {
+            'hi': 'Hello! Nice to meet you!',
+            'hello': 'Hello! How can I help you today?',
+            'how are you': 'I\'m doing well, thank you for asking! I\'m here and ready to chat.',
+            'how do you do': 'I\'m doing wonderfully! Thanks for checking in.',
+            'what can you do': 'I can have conversations, answer questions, and help you think through ideas. What would you like to discuss?',
+            'what can you help me with': 'I\'m here to engage in meaningful conversations and provide helpful information. Ask me anything you\'re curious about!',
+            'tell me about ai': 'Artificial Intelligence refers to computer systems designed to perform tasks that typically require human intelligence. This includes learning from experience, understanding natural language, solving problems, and recognizing patterns.',
+            'what is ai': 'AI encompasses technologies that simulate human intelligence processes by machines, especially computer systems. These processes include learning, reasoning, problem-solving, perception, and language understanding.',
+            'goodbye': 'Goodbye! It was lovely chatting with you. Feel free to come back anytime!',
+            'bye': 'Farewell! Thank you for the conversation. Have a wonderful day!',
+            'thanks': 'You\'re welcome! I\'m happy I could help. Is there anything else you\'d like to talk about?',
+            'thank you': 'My pleasure! Thanks for stopping by to chat. Until next time!'
+        };
+        
+        function processInput() {
+            const input = document.getElementById('userInput').value.trim().toLowerCase();
+            const responseArea = document.getElementById('responseArea');
+            const status = document.getElementById('status');
+            
+            if (!input) {
+                status.textContent = 'Please enter some text';
+                return;
+            }
+            
+            status.textContent = 'Processing...';
+            
+            // Simple response logic
+            let response = 'I\'m a simple demo. For more complex questions, I would use AI when deployed to Hugging Face Spaces. Try "hi", "how are you", or "what can you do".';
+            
+            // Check for exact matches first
+            if (responses[input]) {
+                response = responses[input];
+            } else {
+                // Check for partial matches
+                for (const [key, value] of Object.entries(responses)) {
+                    if (input.includes(key) || key.includes(input)) {
+                        response = value;
+                        break;
+                    }
+                }
+            }
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                responseArea.innerHTML = '<strong>You said:</strong> ' + document.getElementById('userInput').value + '<br><br><strong>AI says:</strong> ' + response;
+                document.getElementById('userInput').value = '';
+                status.textContent = 'Response received';
+            }, 500);
+        }
+        
+        function quickTest(text) {
+            document.getElementById('userInput').value = text;
+            processInput();
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('userInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                processInput();
+            }
+        });
+    </script>
+</body>
+</html>

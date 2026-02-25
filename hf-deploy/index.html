@@ -1,0 +1,542 @@
+---
+title: AI Voice Assistant
+sdk: static
+emoji: 🎙️
+colorFrom: indigo
+colorTo: slate
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant - Hugging Face Spaces</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .neural-orb {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#667eea 0deg, #764ba2 360deg);
+            position: relative;
+            margin: 20px auto 30px;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            transition: all 0.5s ease;
+        }
+        
+        .neural-orb.listening {
+            animation: pulse 1.5s infinite;
+            box-shadow: 0 0 40px rgba(102, 126, 234, 0.8);
+            transform: scale(1.1);
+        }
+        
+        .neural-orb.thinking {
+            animation: rotate 3s linear infinite;
+            box-shadow: 0 0 40px rgba(255, 193, 7, 0.8);
+        }
+        
+        .neural-orb.speaking {
+            animation: glow 1s infinite alternate;
+            box-shadow: 0 0 40px rgba(40, 167, 69, 0.8);
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg) scale(1); }
+            100% { transform: rotate(360deg) scale(1.05); }
+        }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
+            100% { box-shadow: 0 0 50px rgba(40, 167, 69, 1); }
+        }
+        
+        .orb-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .btn-hold {
+            position: relative;
+        }
+        
+        .btn-hold:active {
+            transform: scale(0.95) !important;
+        }
+        
+        .thinking-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ffc107;
+            margin-left: 5px;
+            animation: blink 1.4s infinite both;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-dark-900 via-purple-900 to-violet-900 min-h-screen flex flex-col text-white">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">AI Voice Assistant</h1>
+            <p class="text-gray-300">Powered by Hugging Face Spaces • OpenAI Integration</p>
+        </header>
+        
+        <main class="glassmorphism rounded-2xl shadow-2xl p-6 mb-8 border border-gray-700">
+            <div class="flex flex-col items-center">
+                <!-- Neural Orb Status Indicator -->
+                <div class="neural-orb idle" id="neuralOrb">
+                    <div class="orb-inner flex flex-col items-center justify-center">
+                        <span class="text-sm font-semibold" id="orbStatus">IDLE</span>
+                        <span class="text-xs mt-1 text-gray-500">AI</span>
+                    </div>
+                </div>
+                
+                <div id="status" class="mb-6 w-full text-center">
+                    <p class="text-gray-300" id="statusText">Ready to listen. Hold the button to speak.</p>
+                    <div id="apiKeyNotice" class="mt-2 p-3 bg-yellow-900 bg-opacity-30 rounded-lg text-yellow-200 hidden">
+                        ⚠️ API key not configured. Please add your OPENAI_API_KEY in Space Settings.
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 mb-6">
+                    <button id="listenButton" class="btn-hold bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        <span id="buttonText">🎤 Hold to Listen</span>
+                    </button>
+                    
+                    <button id="stopButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-full text-lg transition-all duration-300 opacity-70 hover:opacity-100 disabled:opacity-40" disabled>
+                        ⏹️ Stop
+                    </button>
+                </div>
+                
+                <div class="mt-4 w-full max-w-2xl">
+                    <div class="bg-gray-800 bg-opacity-50 rounded-lg p-4 border border-gray-600">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-gray-200">Conversation History</h3>
+                            <span id="thinkingIndicator" class="hidden">
+                                <span class="thinking-indicator"></span>
+                                <span class="text-yellow-400 text-sm">Thinking...</span>
+                            </span>
+                        </div>
+                        <div id="conversationLog" class="min-h-[200px] max-h-80 overflow-y-auto bg-gray-900 bg-opacity-70 p-3 rounded border border-gray-700">
+                            <p class="text-gray-500 italic text-center py-8">No conversation yet... Start by holding the "Hold to Listen" button.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-900 bg-opacity-30 p-4 rounded-lg border border-blue-700">
+                            <h4 class="font-medium text-blue-300 mb-2 flex items-center">
+                                <span class="mr-2">💡</span>
+                                Try asking:
+                            </h4>
+                            <ul class="text-sm text-blue-200 space-y-1">
+                                <li>• "Hi" (triggers hello response)</li>
+                                <li>• "What can you help me with?"</li>
+                                <li>• "Tell me a fun fact"</li>
+                                <li>• "How does AI work?"</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-purple-900 bg-opacity-30 p-4 rounded-lg border border-purple-700">
+                            <h4 class="font-medium text-purple-300 mb-2 flex items-center">
+                                <span class="mr-2">⚙️</span>
+                                Features:
+                            </h4>
+                            <ul class="text-sm text-purple-200 space-y-1">
+                                <li>• LLM-Powered Responses</li>
+                                <li>• Real-time Speech Processing</li>
+                                <li>• Visual Status Indicators</li>
+                                <li>• Interruptible Speaking</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center text-gray-400 text-sm">
+            <p>AI Voice Assistant • Deployed on Hugging Face Spaces • Secure API Integration</p>
+        </footer>
+    </div>
+
+    <script>
+        const listenButton = document.getElementById('listenButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusText = document.getElementById('statusText');
+        const buttonText = document.getElementById('buttonText');
+        const conversationLog = document.getElementById('conversationLog');
+        const neuralOrb = document.getElementById('neuralOrb');
+        const orbStatus = document.getElementById('orbStatus');
+        const thinkingIndicator = document.getElementById('thinkingIndicator');
+        const apiKeyNotice = document.getElementById('apiKeyNotice');
+        
+        let isListening = false;
+        let isProcessing = false;
+        let isSpeaking = false;
+        let recognition = null;
+        
+        // Check if SpeechRecognition is available
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+        } else {
+            statusText.textContent = 'Speech recognition not supported in this browser.';
+        }
+        
+        // Add a log entry to the conversation log
+        function addToLog(input, response) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'mb-4 last:mb-0 p-3 bg-gray-800 rounded-lg border-l-4 border-blue-500';
+            
+            logEntry.innerHTML = `
+                <div class="text-sm">
+                    <div class="flex items-start mb-1">
+                        <span class="font-medium text-blue-400 mr-2">You:</span>
+                        <span class="text-gray-200">${input}</span>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="font-medium text-green-400 mr-2">AI:</span>
+                        <span class="text-gray-200">${response}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1 text-right">${timestamp}</div>
+                </div>
+            `;
+            
+            // Clear the "No conversation yet..." message if present
+            if (conversationLog.children.length === 1 && conversationLog.firstChild.textContent.includes("No conversation yet")) {
+                conversationLog.innerHTML = '';
+            }
+            
+            conversationLog.appendChild(logEntry);
+            conversationLog.scrollTop = conversationLog.scrollHeight;
+        }
+        
+        // Update orb status and UI
+        function updateOrbStatus(status) {
+            // Remove all status classes
+            neuralOrb.classList.remove('idle', 'listening', 'thinking', 'speaking');
+            
+            switch(status) {
+                case 'idle':
+                    neuralOrb.classList.add('idle');
+                    orbStatus.textContent = 'IDLE';
+                    break;
+                case 'listening':
+                    neuralOrb.classList.add('listening');
+                    orbStatus.textContent = 'LISTENING';
+                    break;
+                case 'thinking':
+                    neuralOrb.classList.add('thinking');
+                    orbStatus.textContent = 'THINKING';
+                    thinkingIndicator.classList.remove('hidden');
+                    break;
+                case 'speaking':
+                    neuralOrb.classList.add('speaking');
+                    orbStatus.textContent = 'SPEAKING';
+                    thinkingIndicator.classList.add('hidden');
+                    break;
+            }
+        }
+        
+        // Cancel speech synthesis
+        function cancelSpeech() {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+            stopButton.disabled = true;
+        }
+        
+        // Speak text using Web Speech API
+        function speakText(text) {
+            if (!text || text.trim() === '') return;
+            
+            cancelSpeech(); // Cancel any ongoing speech
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Configure voice properties
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(voice => voice.lang.includes('en')); 
+            if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 0.8;
+            
+            utterance.onstart = () => {
+                isSpeaking = true;
+                stopButton.disabled = false;
+                updateOrbStatus('speaking');
+                statusText.textContent = 'AI is speaking...';
+            };
+            
+            utterance.onend = () => {
+                isSpeaking = false;
+                stopButton.disabled = true;
+                updateOrbStatus('idle');
+                statusText.textContent = 'Ready to listen again.';
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                isSpeaking = false;
+                stopButton.disabled = true;
+                updateOrbStatus('idle');
+                statusText.textContent = 'Speech error. Ready to listen.';
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+        
+        // Query the LLM via a proxy or directly if key is available
+        async function queryLLM(prompt) {
+            // Check if running in Hugging Face environment and has access to variables
+            if (window.huggingface && window.huggingface.variables) {
+                try {
+                    // Try to get the API key from Hugging Face variables
+                    const apiKey = window.huggingface.variables.get("OPENAI_API_KEY");
+                    if (!apiKey) {
+                        apiKeyNotice.classList.remove('hidden');
+                        return "Please add your OPENAI_API_KEY in the Space Settings under Variables and Secrets.";
+                    }
+                    
+                    // Make the API call to OpenAI
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4o-mini',
+                            messages: [{ role: 'user', content: prompt }],
+                            max_tokens: 150,
+                            temperature: 0.7
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data.choices[0].message.content.trim();
+                } catch (error) {
+                    console.error('Error querying LLM:', error);
+                    return `Sorry, I encountered an error: ${error.message}`;
+                }
+            } else {
+                // For local development or environments without HF variables
+                // Show notice that API key is required
+                apiKeyNotice.classList.remove('hidden');
+                return "API key not configured. For Hugging Face deployment, please add OPENAI_API_KEY in Space Settings.";
+            }
+        }
+        
+        // Process the recognized text
+        async function processInput(text) {
+            // Check for simple triggers first
+            if (text.includes("hi") || text.includes("hello")) {
+                return "hello";
+            } else if (text.includes("how are you")) {
+                return "I am doing well, thank you for asking!";
+            } else if (text.includes("what is your name")) {
+                return "I am your AI voice assistant, powered by OpenAI GPT.";
+            } else if (text.includes("thank you") || text.includes("thanks")) {
+                return "You're welcome! Is there anything else I can help with?";
+            } else {
+                // For more complex queries, use the LLM
+                return await queryLLM(text);
+            }
+        }
+        
+        // Handle the listen button mousedown (start listening)
+        listenButton.addEventListener('mousedown', () => {
+            if (isListening || isProcessing) return;
+            startListening();
+        });
+        
+        // Handle the listen button touchstart (for mobile)
+        listenButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isListening || isProcessing) return;
+            startListening();
+        });
+        
+        // Handle the listen button mouseup (stop listening)
+        listenButton.addEventListener('mouseup', stopListening);
+        listenButton.addEventListener('mouseleave', stopListening);
+        
+        // Handle the listen button touchend (for mobile)
+        listenButton.addEventListener('touchend', stopListening);
+        listenButton.addEventListener('touchcancel', stopListening);
+        
+        function startListening() {
+            if (isListening || isProcessing) return;
+            
+            if (!recognition) {
+                statusText.textContent = 'Speech recognition not supported in this browser.';
+                return;
+            }
+            
+            isListening = true;
+            
+            // Update UI for listening state
+            updateOrbStatus('listening');
+            buttonText.textContent = '🔴 Listening...';
+            statusText.textContent = 'Listening for your voice... Please speak now.';
+            
+            // Start speech recognition
+            try {
+                recognition.start();
+                
+                recognition.onresult = async (event) => {
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    stopListening();
+                    await processVoiceInput(transcript);
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    stopListening();
+                    statusText.textContent = `Speech recognition error: ${event.error}. Please try again.`;
+                    updateOrbStatus('idle');
+                };
+                
+                recognition.onend = () => {
+                    if (isListening) {
+                        stopListening();
+                    }
+                };
+            } catch (error) {
+                console.error('Error starting speech recognition:', error);
+                stopListening();
+                statusText.textContent = 'Error accessing microphone. Please ensure permissions are granted.';
+                updateOrbStatus('idle');
+            }
+        }
+        
+        function stopListening() {
+            if (!isListening) return;
+            
+            isListening = false;
+            
+            try {
+                recognition.stop();
+            } catch (e) {
+                console.warn('Recognition stop error:', e);
+            }
+            
+            // Update UI back to ready state
+            if (!isProcessing && !isSpeaking) {
+                updateOrbStatus('idle');
+                buttonText.textContent = '🎤 Hold to Listen';
+                statusText.textContent = 'Processing your request...';
+            }
+        }
+        
+        async function processVoiceInput(transcript) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            
+            try {
+                // Update orb to thinking state while we process
+                updateOrbStatus('thinking');
+                statusText.textContent = `Processing: "${transcript}"`;
+                
+                // Process the input to get a response
+                const response = await processInput(transcript);
+                
+                // Add to log
+                addToLog(transcript, response);
+                
+                // Speak the response
+                speakText(response);
+            } catch (error) {
+                console.error('Error processing voice input:', error);
+                statusText.textContent = 'Error processing your request. Please try again.';
+                updateOrbStatus('idle');
+            } finally {
+                isProcessing = false;
+                
+                if (!isSpeaking && !isListening) {
+                    updateOrbStatus('idle');
+                    buttonText.textContent = '🎤 Hold to Listen';
+                    statusText.textContent = 'Ready to listen again.';
+                }
+            }
+        }
+        
+        // Handle stop button click
+        stopButton.addEventListener('click', () => {
+            cancelSpeech();
+            statusText.textContent = 'Speech stopped. Ready to listen again.';
+        });
+        
+        // Request speech synthesis voices after a delay to ensure they're loaded
+        window.speechSynthesis.onvoiceschanged = function() {
+            console.log('Speech synthesis voices loaded:', window.speechSynthesis.getVoices());
+        };
+        
+        // Initialize UI
+        updateOrbStatus('idle');
+        
+        // Check if we're in a Hugging Face environment
+        if (typeof window.huggingface !== 'undefined') {
+            console.log('Running in Hugging Face environment');
+        } else {
+            console.log('Not running in Hugging Face environment - for local testing only');
+            apiKeyNotice.classList.remove('hidden');
+            apiKeyNotice.textContent = '⚠️ Local testing mode. For Hugging Face deployment, add OPENAI_API_KEY in Space Settings.';
+        }
+    </script>
+</body>
+</html>
