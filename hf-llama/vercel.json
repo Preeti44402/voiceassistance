@@ -1,12 +1,7 @@
 {
   "version": 2,
   "name": "kodbank-voice-assistant",
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    }
-  ],
+  "builds": [],
   "routes": [
     {
       "src": "/",
