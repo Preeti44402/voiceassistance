@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "name": "kodbank-voice-assistant",
+  "builds": [
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/enhanced-voice-demo.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
