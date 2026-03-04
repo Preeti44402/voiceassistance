@@ -367,6 +367,8 @@
         }
 
         function processVoiceResult(transcript) {
+            console.log('🎤 Processing voice result:', transcript);
+            
             const responseArea = document.getElementById('responseArea');
             const status = document.getElementById('status');
             
@@ -374,32 +376,114 @@
             
             // Find the best response
             let response = getResponseForInput(transcript);
+            console.log('💬 Response found:', response);
             
             // Simulate processing delay
             setTimeout(() => {
                 responseArea.innerHTML = '<strong>You said (via voice):</strong> ' + transcript + '<br><br><strong>AI says:</strong> ' + response;
                 status.textContent = 'Voice response received';
                 
-                // Try to speak the response if possible
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(response);
-                    utterance.rate = 1.0;
-                    utterance.pitch = 1.0;
-                    utterance.volume = 0.8;
-                    window.speechSynthesis.speak(utterance);
-                }
+                console.log('🔊 About to speak response...');
+                // Speak with improved female voice settings
+                speakResponse(response);
             }, 500);
         }
 
+        function speakResponse(text) {
+            console.log('🔊 speakResponse called with:', text);
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Try to get a female voice (Siri-like)
+                const voices = window.speechSynthesis.getVoices();
+                console.log('Available voices count:', voices.length);
+                
+                // Prefer female voices - look for common female voice names
+                const femaleVoiceNames = ['Samantha', 'Google US English', 'Moira', 'Tessa', 'Ava', 'Allison', 'Microsoft Zira', 'Zira', 'Catherine', 'Linda', 'Heather'];
+                
+                let selectedVoice = null;
+                
+                // First, try to find a specific female voice by name
+                for (const voiceName of femaleVoiceNames) {
+                    selectedVoice = voices.find(voice => 
+                        voice.name.includes(voiceName) && 
+                        voice.lang.includes('en')
+                    );
+                    if (selectedVoice) {
+                        console.log('✅ Found voice by name:', selectedVoice.name);
+                        break;
+                    }
+                }
+                
+                // If no named voice found, try to find a high-pitched female-sounding voice
+                if (!selectedVoice) {
+                    // Look for Google or Microsoft female voices
+                    selectedVoice = voices.find(voice => 
+                        (voice.name.includes('Google') || voice.name.includes('Microsoft')) &&
+                        voice.lang.includes('en') &&
+                        !voice.name.includes('Male') &&
+                        !voice.name.includes('David') &&
+                        !voice.name.includes('James')
+                    );
+                    if (selectedVoice) {
+                        console.log('✅ Found voice by provider:', selectedVoice.name);
+                    }
+                }
+                
+                // Fallback: pick any English voice that's not obviously male
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(voice => 
+                        voice.lang.includes('en') &&
+                        !voice.name.includes('Male') &&
+                        !voice.name.includes('David') &&
+                        !voice.name.includes('James')
+                    );
+                    console.log('⚠️ Using fallback voice:', selectedVoice?.name || 'Default');
+                }
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                
+                // Adjust pitch and rate for more natural, friendly tone (Siri-like)
+                utterance.pitch = 1.1; // Slightly higher pitch for feminine quality
+                utterance.rate = 0.95; // Slightly slower for clarity
+                utterance.volume = 0.9; // Good volume
+                
+                utterance.onstart = function() {
+                    console.log('🔊 STARTED speaking with voice:', selectedVoice?.name || 'Default');
+                };
+                
+                utterance.onend = function() {
+                    console.log('✅ FINISHED speaking');
+                };
+                
+                utterance.onerror = function(event) {
+                    console.error('❌ Speech synthesis error:', event);
+                };
+                
+                console.log('🔊 Calling speechSynthesis.speak()...');
+                window.speechSynthesis.speak(utterance);
+                console.log('🔊 speak() called successfully');
+            } else {
+                console.error('❌ Text-to-Speech NOT supported in this browser');
+            }
+        }
+
         function getResponseForInput(input) {
+            console.log('🔍 getResponseForInput called with:', input);
+            
             // Check for exact matches first
             if (responses[input]) {
+                console.log('✅ Found exact match for:', input);
                 return responses[input];
             }
             
             // Check for partial matches
             for (const [key, value] of Object.entries(responses)) {
                 if (input.includes(key) || key.includes(input)) {
+                    console.log('✅ Found partial match - input:', input, 'matched key:', key);
                     return value;
                 }
             }
@@ -459,14 +543,8 @@
                 document.getElementById('userInput').value = '';
                 status.textContent = 'Text response received';
                 
-                // Try to speak the response if possible
-                if ('speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(response);
-                    utterance.rate = 1.0;
-                    utterance.pitch = 1.0;
-                    utterance.volume = 0.8;
-                    window.speechSynthesis.speak(utterance);
-                }
+                // Speak with improved female voice settings
+                speakResponse(response);
             }, 500);
         }
         
@@ -485,6 +563,20 @@
         // Initialize when page loads
         window.onload = function() {
             initSpeechRecognition();
+            
+            // Pre-load voices for better selection
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = function() {
+                    console.log('Voices loaded:', speechSynthesis.getVoices().length, 'voices available');
+                };
+            }
+            setTimeout(function() {
+                const voices = speechSynthesis.getVoices();
+                console.log('Available voices:', voices.length);
+                if (voices.length > 0) {
+                    console.log('Sample voices:', voices.slice(0, 3).map(v => v.name + ' (' + v.lang + ')'));
+                }
+            }, 200);
         };
     </script>
 </body>
