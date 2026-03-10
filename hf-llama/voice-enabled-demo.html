@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kodbank Voice Assistant - Voice Enabled Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .input-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 60%;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .voice-btn {
+            background: linear-gradient(to right, #fa709a 0%, #fee140 100%);
+        }
+        .response-box {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 120px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .quick-buttons {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .quick-btn {
+            background: #6a11cb;
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #ccc;
+        }
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kodbank Voice Assistant</h1>
+        <p style="text-align: center; color: #ccc;">Voice + Text Enabled Demo</p>
+        
+        <div class="status" id="status">Ready for input</div>
+        
+        <div class="input-section">
+            <input type="text" id="userInput" placeholder="Type 'hi', 'how are you', or any question..." />
+            <button onclick="processInput()">Send Text</button>
+        </div>
+        
+        <div class="input-section">
+            <button class="voice-btn pulse" onclick="startVoiceInput()" id="voiceButton">
+                🎤 Click to Enable Voice
+            </button>
+            <div id="voiceStatus" style="margin-top: 10px; font-size: 14px; color: #ccc;"></div>
+        </div>
+        
+        <div class="quick-buttons">
+            <button class="quick-btn" onclick="quickTest('hi')">Say Hi</button>
+            <button class="quick-btn" onclick="quickTest('how are you')">How are you?</button>
+            <button class="quick-btn" onclick="quickTest('what can you do')">What can you do?</button>
+            <button class="quick-btn" onclick="quickTest('tell me about AI')">About AI</button>
+        </div>
+        
+        <div class="response-box" id="responseArea">
+            Welcome! This demo supports both text and voice input. 
+            <br><br>For voice: Click the microphone button, allow microphone access, then speak.
+            <br>For text: Type your message and click "Send Text".
+        </div>
+        
+        <div class="instructions">
+            <h3>Voice Input Instructions:</h3>
+            <ol>
+                <li>Click the "Click to Enable Voice" button</li>
+                <li>Allow microphone access when prompted by your browser</li>
+                <li>Speak clearly and naturally</li>
+                <li>Say "hi" to test the voice recognition</li>
+            </ol>
+            <p><strong>Note:</strong> Voice recognition works best in Chrome, Edge, or Safari browsers.</p>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center; color: #ccc;">
+            <p>When deployed to Hugging Face Spaces, this will have full AI capabilities with Llama 3.</p>
+        </div>
+    </div>
+
+    <script>
+        // Simple response mapping
+        const responses = {
+            'hi': 'Hello! Nice to meet you! I heard you say "hi" through voice or text.',
+            'hello': 'Hello! How can I help you today? I heard you say "hello".',
+            'how are you': 'I\'m doing well, thank you for asking! I\'m here and ready to chat.',
+            'how do you do': 'I\'m doing wonderfully! Thanks for checking in.',
+            'what can you do': 'I can have conversations, answer questions, and help you think through ideas. What would you like to discuss?',
+            'what can you help me with': 'I\'m here to engage in meaningful conversations and provide helpful information. Ask me anything you\'re curious about!',
+            'tell me about ai': 'Artificial Intelligence refers to computer systems designed to perform tasks that typically require human intelligence. This includes learning from experience, understanding natural language, solving problems, and recognizing patterns.',
+            'what is ai': 'AI encompasses technologies that simulate human intelligence processes by machines, especially computer systems. These processes include learning, reasoning, problem-solving, perception, and language understanding.',
+            'goodbye': 'Goodbye! It was lovely chatting with you. Feel free to come back anytime!',
+            'bye': 'Farewell! Thank you for the conversation. Have a wonderful day!',
+            'thanks': 'You\'re welcome! I\'m happy I could help. Is there anything else you\'d like to talk about?',
+            'thank you': 'My pleasure! Thanks for stopping by to chat. Until next time!'
+        };
+
+        let recognition = null;
+        let isListening = false;
+
+        // Initialize speech recognition if available
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    document.getElementById('voiceStatus').textContent = 'Heard: "' + transcript + '"';
+                    processVoiceResult(transcript);
+                };
+
+                recognition.onerror = function(event) {
+                    document.getElementById('voiceStatus').textContent = 'Error: ' + event.error;
+                    isListening = false;
+                    updateVoiceButton();
+                };
+
+                recognition.onend = function() {
+                    isListening = false;
+                    updateVoiceButton();
+                };
+
+                recognition.onstart = function() {
+                    document.getElementById('voiceStatus').textContent = 'Listening... Speak now';
+                    isListening = true;
+                    updateVoiceButton();
+                };
+
+                document.getElementById('voiceStatus').textContent = 'Voice recognition ready. Click button to start.';
+                return true;
+            } else {
+                document.getElementById('voiceStatus').textContent = 'Voice recognition not supported in this browser. Please use Chrome, Edge, or Safari.';
+                document.getElementById('voiceButton').disabled = true;
+                return false;
+            }
+        }
+
+        function updateVoiceButton() {
+            const button = document.getElementById('voiceButton');
+            if (isListening) {
+                button.textContent = '🔴 Listening...';
+                button.classList.add('pulse');
+            } else {
+                button.textContent = '🎤 Click to Enable Voice';
+                button.classList.remove('pulse');
+            }
+        }
+
+        function startVoiceInput() {
+            if (!recognition) {
+                if (!initSpeechRecognition()) {
+                    return;
+                }
+            }
+
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                updateVoiceButton();
+            } else {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    document.getElementById('voiceStatus').textContent = 'Error: ' + error.message;
+                    if (error.message.includes('permission')) {
+                        document.getElementById('voiceStatus').textContent = 'Please allow microphone access in your browser settings.';
+                    }
+                }
+            }
+        }
+
+        function processVoiceResult(transcript) {
+            const responseArea = document.getElementById('responseArea');
+            const status = document.getElementById('status');
+            
+            status.textContent = 'Processing voice input...';
+            
+            // Simple response logic
+            let response = 'I heard you say "' + transcript + '". I\'m a simple demo. For more complex questions, I would use AI when deployed to Hugging Face Spaces.';
+            
+            // Check for exact matches first
+            if (responses[transcript]) {
+                response = responses[transcript];
+            } else {
+                // Check for partial matches
+                for (const [key, value] of Object.entries(responses)) {
+                    if (transcript.includes(key) || key.includes(transcript)) {
+                        response = value;
+                        break;
+                    }
+                }
+            }
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                responseArea.innerHTML = '<strong>You said (via voice):</strong> ' + transcript + '<br><br><strong>AI says:</strong> ' + response;
+                status.textContent = 'Voice response received';
+                
+                // Try to speak the response if possible
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(response);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, 500);
+        }
+
+        function processInput() {
+            const input = document.getElementById('userInput').value.trim().toLowerCase();
+            const responseArea = document.getElementById('responseArea');
+            const status = document.getElementById('status');
+            
+            if (!input) {
+                status.textContent = 'Please enter some text';
+                return;
+            }
+            
+            status.textContent = 'Processing text input...';
+            
+            // Simple response logic
+            let response = 'I received your text message "' + input + '". I\'m a simple demo. For more complex questions, I would use AI when deployed to Hugging Face Spaces. Try "hi", "how are you", or "what can you do".';
+            
+            // Check for exact matches first
+            if (responses[input]) {
+                response = responses[input];
+            } else {
+                // Check for partial matches
+                for (const [key, value] of Object.entries(responses)) {
+                    if (input.includes(key) || key.includes(input)) {
+                        response = value;
+                        break;
+                    }
+                }
+            }
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                responseArea.innerHTML = '<strong>You said (via text):</strong> ' + document.getElementById('userInput').value + '<br><br><strong>AI says:</strong> ' + response;
+                document.getElementById('userInput').value = '';
+                status.textContent = 'Text response received';
+                
+                // Try to speak the response if possible
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(response);
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, 500);
+        }
+        
+        function quickTest(text) {
+            document.getElementById('userInput').value = text;
+            processInput();
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('userInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                processInput();
+            }
+        });
+
+        // Initialize when page loads
+        window.onload = function() {
+            initSpeechRecognition();
+        };
+    </script>
+</body>
+</html>
