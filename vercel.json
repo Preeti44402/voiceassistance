@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "kodbank-voice-assistant",
+  "outputDirectory": "hf-llama",
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/hf-llama/enhanced-voice-demo.html"
+    }
+  ]
+}
